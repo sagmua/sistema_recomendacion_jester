@@ -1,0 +1,9 @@
+# ignorar los archivos que coincidan con los siguientes patrones 
+
+~* 
+*.pdf
+*.pvm
+*.DS_Store
+.Rproj.user
+*.xlsx
+documentacion

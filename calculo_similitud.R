@@ -1,0 +1,110 @@
+library("dplyr") 
+library("tidyr") 
+library("tibble") 
+
+
+#Función para abrir los HTLM:
+############
+openFileInOS <- function(f) {
+  
+  if (missing(f)) {
+    stop('No file to open!')
+  }
+  
+  f <- path.expand(f)
+  
+  if (!file.exists(f)) {
+    stop('File not found!')
+  }
+  
+  if (grepl('w|W', .Platform$OS.type)) {
+    ## we are on Windows
+    shell.exec(f) #nolint
+  } else {
+    if (grepl('darwin', version$os)) {
+      ## Mac
+      system(paste(shQuote('open'), shQuote(f)), wait = FALSE, ignore.stderr = TRUE)
+    } else {
+      ## Linux
+      system(paste(shQuote('/usr/bin/xdg-open'), shQuote(f)), #nolint
+             wait = FALSE,
+             ignore.stdout = TRUE)
+    }
+  }
+  
+}
+############
+
+#Funcion donde calculamos la correlación de Pearson
+funcion_correlacion <- function(x, y){
+  #Tenemos en cuenta la existencia de NA's
+  correlacion <- cor(x, y, use = "na.or.complete", method = "pearson")
+  return(correlacion)
+}
+#Llamada a la función anterior
+cor_pearson<- function(x,y){
+  a<-as.numeric(x)
+  b<-as.numeric(y)
+  resultado<-funcion_correlacion(a,b)
+  return(resultado)
+  
+}
+
+#En primer lugar leemos las valoraciones que ya hemos filtrado mediante el script en python.
+# donde solo hemos cogido aquellos usuarios que valoran más del 10% de los chistes:
+valoraciones_10 = read.csv("valoraciones_10.csv")[,-1]
+colnames(valoraciones_10)[2:101] = lapply(1:100, toString)
+
+#Calculamos la matriz traspuesta para la similitud:
+valoraciones_10_t = t(valoraciones_10)
+
+#NUESTRO USUARIO DONDE PROBAREMOS EL SISTEMA DE RECOMENDACIÓN,
+# EL USUARIO 6. (PUEDE CAMBIARSE)
+user = 6
+
+similitud<-data.frame(usuario="Primer", valor=1)
+#Calculamos la similitud empleando el coeficiente de correlación
+# de pearson utilizando para ello la matriz traspuesta:
+for (i in 1:ncol(valoraciones_10_t) ) {
+  resultado<-cor_pearson(valoraciones_10_t[-1,i], valoraciones_10_t[-1,user])
+  anadido<-data.frame(as.factor(valoraciones_10_t[1,i]), resultado)
+  names(anadido) = c("usuario", "valor")
+  similitud<-rbind(similitud,anadido)
+}
+
+#Ordenamos la similitud de mayor a menor:
+ordenados_mayor_similitud<- similitud[order(-similitud$valor),]
+ordenados_mayor_similitud<- ordenados_mayor_similitud[-c(1,2),]
+
+# Elegimos los 10 usuarios más similares:
+usuarios_similares<- ordenados_mayor_similitud[c(1:10),]
+usuarios_similares<- usuarios_similares[1]
+rownames(usuarios_similares)<-NULL  
+usuarios_similares<-as.vector(usuarios_similares)
+
+
+# Obtenemos un dataframe de 3 columnas ordenados
+#por usuario y chiste que valora:
+valoraciones_chiste <- valoraciones_10 %>% gather(key = "chiste",
+                                             value = "rating",
+                                             -users)
+
+
+# Obtengo los chistes que no ha visto mi usuario:
+chistes_no_vistos <- valoraciones_chiste %>%
+  filter(users == user & is.na(rating)) 
+
+chistes_posibles = 0
+# Voy a calcular y almacenar los chistes vistas por los 10 similares y que han valorado de forma positiva
+for (i in usuarios_similares) { 
+  chistes_posibles <- valoraciones_chiste %>%
+    filter(users == i & rating>2)
+}
+
+
+p<-which(chistes_posibles$chiste %in% chistes_no_vistos$chiste)
+chistes_recomendados = chistes_posibles[p,2] 
+chistes_recomendados
+
+#Abrimos el primer chiste recomendado que nos propone neustro sistema de recomendación:
+openFileInOS(paste(getwd(), "/jokes/init",toString(chistes_recomendados[1]), ".html", sep = ""))
