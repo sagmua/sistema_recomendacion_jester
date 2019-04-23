@@ -8,8 +8,9 @@ Realizamos un sistema de recomendación de chistes basado en las valoraciones de
 
 ## Información de los ficheros
 
-* **movie_metadata.csv**: Conjunto de datos original con toda la información de las valoraciones de chistes.
+* **jester_ratings.dat**: Conjunto de datos original con toda la información de las valoraciones de chistes.
 * **tratamiento_datos.py**: Código necesario para el tratamiento del conjunto de datos. De esta forma podrémos crear posteriormente en R nuestro sistema de recomendación.
+* **calculo_similitud.R**: Código de implementación del sistema de recomendaciónde chistes en R.
 * **valoraciones_10.csv**: Subconjunto transformado de las 67176 valoraciones originales. Contiene usuarios que han valorado al menos el 10% de los chistes. 
 
 ## Autor:
